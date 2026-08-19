@@ -32,6 +32,13 @@ def main():
     b.connect()
     load = b.load()
     print("load:", load)
+
+    # Write load results immediately - if workloads() fails or times out,
+    # we don't lose the (often slow, network-bound) load numbers.
+    with open(out_path, "w") as f:
+        json.dump({"platform": b.name, "load": load, "workloads": None}, f, indent=2)
+    print(f"wrote partial (load-only) {out_path}")
+
     workloads = b.workloads(iterations=100, start_node_sample=50)
     print("workloads done")
     b.close()

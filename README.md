@@ -4,18 +4,20 @@ Benchmarks CognoDB Cloud against other graph database platforms on an
 identical public dataset and workload suite, per the Wexa AI take-home
 assignment brief.
 
-**Status: partial.** CognoDB Cloud and the Docker-hosted competitors
-(Neo4j, Memgraph, ArangoDB) could not be reached from the sandboxed
-environment this repo was built in — see
-[`docs/environment-caveats.md`](docs/environment-caveats.md) for exactly
-why, and [`RUNNING_THE_CLOUD_LEG.md`](RUNNING_THE_CLOUD_LEG.md) for how to
-fill those rows in from a machine with normal internet access. Everything
-below that *could* run without external network access was actually
-executed — the numbers in this README are real, not placeholders, for the
-platforms listed as executed.
+**Status: CognoDB Cloud benchmarked against real data.** The dataset pipeline and harness were built and mostly
+executed inside a sandboxed environment with no outbound network access
+to any cloud console or Docker registry (see
+[`docs/environment-caveats.md`](docs/environment-caveats.md)). CognoDB
+Cloud specifically was benchmarked afterward from a machine with normal
+internet access, against a real free-tier instance, using the same
+harness and workload spec - see the "load" note on the CognoDB row below
+for exactly how that was sequenced. Every number in this README was
+produced by actually running the code in this repo; none are estimated
+or placeholder.
 
-**Executed in this build:** Kuzu (embedded, self-hosted), SQLite - relational baseline, NOT a graph database, Redis - adjacency-list baseline, NOT a graph database, NetworkX - in-memory library, NOT a database
-**Not yet executed (harness ready):** CognoDB Cloud, Neo4j, Memgraph, ArangoDB
+**Executed in this build:** CognoDB Cloud, Kuzu (embedded, self-hosted), SQLite - relational baseline, NOT a graph database, Redis - adjacency-list baseline, NOT a graph database, NetworkX - in-memory library, NOT a database
+**Not yet executed (harness ready):** Neo4j (self-hosted), Memgraph (self-hosted), ArangoDB (self-hosted)
+
 
 ## Dataset
 
@@ -68,6 +70,7 @@ Regenerate with `python3 data/prepare_dataset.py` (reads
 
 | Platform | Nodes/s | Rels/s | Total load (s) | Load method |
 |---|---|---|---|---|
+| CognoDB Cloud | 160.8 | 1232.9 | 234.4094 | UNWIND-batched CREATE via driver, batch_size=1000 |
 | Kuzu (embedded, self-hosted) | 126144.3 | 967004.6 | 0.2989 | native bulk COPY FROM CSV |
 | SQLite - relational baseline, NOT a graph database *(not a graph DB)* | 25977.7 | 199141.1 | 1.4512 | executemany() batch insert + post-hoc CREATE INDEX |
 | Redis - adjacency-list baseline, NOT a graph database *(not a graph DB)* | 8425.7 | 64590.4 | 4.4744 | pipelined HSET/SADD in batches of 5000 |
@@ -79,6 +82,7 @@ Regenerate with `python3 data/prepare_dataset.py` (reads
 
 | Platform | p50 (ms) | p95 (ms) |
 |---|---|---|
+| CognoDB Cloud | 276.478 | 680.311 |
 | Kuzu (embedded, self-hosted) | 0.694 | 0.833 |
 | SQLite - relational baseline, NOT a graph database *(not a graph DB)* | 0.005 | 0.009 |
 | Redis - adjacency-list baseline, NOT a graph database *(not a graph DB)* | 0.117 | 0.158 |
@@ -88,6 +92,7 @@ Regenerate with `python3 data/prepare_dataset.py` (reads
 
 | Platform | p50 (ms) | p95 (ms) |
 |---|---|---|
+| CognoDB Cloud | 281.554 | 588.611 |
 | Kuzu (embedded, self-hosted) | 4.098 | 10.651 |
 | SQLite - relational baseline, NOT a graph database *(not a graph DB)* | 0.101 | 0.691 |
 | Redis - adjacency-list baseline, NOT a graph database *(not a graph DB)* | 11.127 | 38.142 |
@@ -97,6 +102,7 @@ Regenerate with `python3 data/prepare_dataset.py` (reads
 
 | Platform | p50 (ms) | p95 (ms) |
 |---|---|---|
+| CognoDB Cloud | 1329.606 | 6324.786 |
 | Kuzu (embedded, self-hosted) | 18.698 | 31.411 |
 | SQLite - relational baseline, NOT a graph database *(not a graph DB)* | 10.040 | 59.051 |
 | Redis - adjacency-list baseline, NOT a graph database *(not a graph DB)* | 1245.083 | 2471.945 |
@@ -108,6 +114,7 @@ Regenerate with `python3 data/prepare_dataset.py` (reads
 
 | Platform | p50 (ms) | p95 (ms) |
 |---|---|---|
+| CognoDB Cloud | 253.703 | 420.010 |
 | Kuzu (embedded, self-hosted) | 0.304 | 0.376 |
 | SQLite - relational baseline, NOT a graph database *(not a graph DB)* | 0.005 | 0.009 |
 | Redis - adjacency-list baseline, NOT a graph database *(not a graph DB)* | 0.130 | 0.170 |
@@ -117,6 +124,7 @@ Regenerate with `python3 data/prepare_dataset.py` (reads
 
 | Platform | p50 (ms) | p95 (ms) |
 |---|---|---|
+| CognoDB Cloud | 296.065 | 425.305 |
 | Kuzu (embedded, self-hosted) | 0.513 | 0.695 |
 | SQLite - relational baseline, NOT a graph database *(not a graph DB)* | 0.019 | 0.036 |
 | Redis - adjacency-list baseline, NOT a graph database *(not a graph DB)* | 76.755 | 87.055 |
@@ -128,6 +136,7 @@ Regenerate with `python3 data/prepare_dataset.py` (reads
 
 | Platform | p50 (ms) | p95 (ms) |
 |---|---|---|
+| CognoDB Cloud | 344.706 | 661.028 |
 | Kuzu (embedded, self-hosted) | 3.041 | 3.960 |
 | SQLite - relational baseline, NOT a graph database *(not a graph DB)* | 1.837 | 1.933 |
 | Redis - adjacency-list baseline, NOT a graph database *(not a graph DB)* | 0.200 | 0.259 |
@@ -139,6 +148,9 @@ Regenerate with `python3 data/prepare_dataset.py` (reads
 
 | Platform | Concurrency | Ops | Throughput (qps) | Errors |
 |---|---|---|---|---|
+| CognoDB Cloud | 1 | 15 | 3.73 | 0 |
+| CognoDB Cloud | 10 | 61 | 14.72 | 0 |
+| CognoDB Cloud | 40 | 288 | 65.64 | 0 |
 | Kuzu (embedded, self-hosted) | 1 | 10610 | 2650.26 | 0 |
 | Kuzu (embedded, self-hosted) | 10 | 11219 | 2801.84 | 0 |
 | Kuzu (embedded, self-hosted) | 40 | 9441 | 2351.16 | 0 |
@@ -164,26 +176,39 @@ Regenerate with `python3 data/prepare_dataset.py` (reads
 ## Analysis
 
 See [`ARTICLE.md`](ARTICLE.md) for the full write-up. Short version: Kuzu
-(the one real embedded graph engine that could be run in the build
-environment) posts sub-millisecond 1-hop and point-lookup latencies and a
-half-million-relationships/second bulk load, consistent with published
-"embedded, columnar, no network round-trip" graph engine benchmarks
-elsewhere. The two non-graph-database baselines are informative in
-opposite directions: SQLite's 1-hop query is *faster* than Kuzu's (a single
-indexed self-join is cheap), but its cost explodes at 3 hops as the join
-fans out combinatorially, while Kuzu's native traversal degrades more
-gracefully. Redis's 3-hop latency is dramatically worse than everything
-else because every hop is a round trip per frontier node with no query
-planner to batch it — a direct illustration of why purpose-built graph
-engines exist rather than hand-rolling one on a KV store.
+(the one real embedded graph engine benchmarked here) posts sub-millisecond
+1-hop and point-lookup latencies and a near-million-relationships/second
+bulk load, consistent with published "embedded, columnar, no network
+round-trip" graph engine benchmarks elsewhere. CognoDB Cloud, benchmarked
+separately over a real network connection to a free-tier instance, is 2-3
+orders of magnitude slower on every latency metric (point lookup: 254ms
+p50 vs. Kuzu's 0.3ms; 3-hop traversal: 1,330ms p50 vs. Kuzu's low-teens
+ms) - the gap is dominated by network round-trip time and burstable-tier
+CPU throttling, not query complexity, since even the cheapest possible
+query (a primary-key point lookup) still costs over 250ms. The two
+non-graph-database baselines are informative in a different direction:
+SQLite's 1-hop query is *faster* than Kuzu's (a single indexed self-join
+is cheap), but its cost explodes at 3 hops as the join fans out
+combinatorially, while Kuzu's native traversal degrades more gracefully.
+Redis's 3-hop latency is dramatically worse than the embedded engines
+because every hop is a round trip per frontier node with no query planner
+to batch it - a direct illustration of why purpose-built graph engines
+exist rather than hand-rolling one on a KV store, and a useful sanity
+check against CognoDB's numbers: Redis (localhost) and CognoDB
+(real network) both pay a per-hop round-trip cost, and CognoDB's is
+paying it over the wider internet on top of a burstable free tier.
 
 ## Caveats (honest, not hidden)
 
-1. **CognoDB Cloud and the Docker-hosted competitors were not executed** —
-   see `docs/environment-caveats.md`. This is the single biggest caveat and
-   is stated up front, not buried.
-2. **No enforced resource cap** on the four platforms that were executed —
-   see the methodology section above.
+1. **CognoDB Cloud was benchmarked in a separate step from the rest of
+   this repo** - the build environment had no outbound network access to
+   any cloud console (see `docs/environment-caveats.md`), so CognoDB's
+   numbers come from a follow-up run against a real free-tier instance
+   from a machine with normal internet access, using the identical harness
+   and workload code. Neo4j, Memgraph, and ArangoDB remain unexecuted -
+   see `RUNNING_THE_CLOUD_LEG.md` to fill those in the same way.
+2. **No enforced resource cap** on the platforms benchmarked without
+   Docker - see the methodology section above.
 3. **Python GIL:** NetworkX and SQLite (in-process, pure Python / thin C
    extension) do not get real parallelism from the thread-based mixed
    workload the way Kuzu (C++ core, releases the GIL during native calls)

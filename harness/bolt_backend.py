@@ -52,8 +52,25 @@ class BoltBackend:
         self.driver = GraphDatabase.driver(self.uri, auth=(self.user, self.password))
         self.driver.verify_connectivity()
 
-    def load(self, batch_size=1000):
+    def load(self, batch_size=1000, force_reload=False):
         import time
+
+        with self.driver.session() as s:
+            existing = s.run("MATCH (n:Dev) RETURN count(n) AS c").single()["c"]
+        if existing and not force_reload:
+            # Data from a previous run is already there (e.g. workloads()
+            # failed last time after a slow network load succeeded) - skip
+            # the expensive reload rather than make you wait another few
+            # minutes. Pass force_reload=True to wipe and reload anyway.
+            return {
+                "node_count": existing,
+                "relationship_count": None,
+                "note": (
+                    f"skipped reload - {existing} Dev nodes already present "
+                    "from a previous run; pass force_reload=True to redo it"
+                ),
+                "method": "skipped (data already loaded)",
+            }
 
         with self.driver.session() as s:
             s.run("MATCH (n) DETACH DELETE n")
@@ -122,10 +139,26 @@ class BoltBackend:
 
     def workloads(self, iterations=100, start_node_sample=50):
         random.seed(42)
+        # Cheap, bounded sample instead of a full-table scan - a free-tier
+        # instance can hit a query deadline pulling all node ids at once
+        # (observed against CognoDB Cloud's free tier: OutOfTimeError on
+        # "MATCH (n:Dev) RETURN n.id" over ~37.7k nodes - see caveats).
         with self.driver.session() as s:
-            all_ids = [r["id"] for r in s.run("MATCH (n:Dev) RETURN n.id AS id")]
-        start_ids = random.sample(all_ids, min(start_node_sample, len(all_ids)))
+            start_ids = [
+                r["id"]
+                for r in s.run(
+                    "MATCH (n:Dev) RETURN n.id AS id LIMIT $n", n=start_node_sample
+                )
+            ]
         out = {}
+        errors = {}
+
+        def safe(key, fn):
+            try:
+                return fn()
+            except Exception as e:  # noqa: BLE001 - record and move on
+                errors[key] = f"{type(e).__name__}: {e}"
+                return None
 
         for hop in (1, 2, 3):
             rel_pattern = "-[:FOLLOWS]-".join(
@@ -139,7 +172,9 @@ class BoltBackend:
                 with self.driver.session() as s:
                     list(s.run(f"MATCH {rel_pattern} WHERE n.id = $id RETURN count(*)", id=sid))
 
-            out[f"traversal_{hop}hop_ms"] = percentiles(run_timed(do_hop, iterations, 10))
+            out[f"traversal_{hop}hop_ms"] = safe(
+                f"traversal_{hop}hop", lambda do_hop=do_hop: percentiles(run_timed(do_hop, iterations, 10))
+            )
 
         idx = {"i": 0}
 
@@ -149,20 +184,26 @@ class BoltBackend:
             with self.driver.session() as s:
                 list(s.run("MATCH (n:Dev {id: $id}) RETURN n.login", id=sid))
 
-        out["point_lookup_ms"] = percentiles(run_timed(point_lookup, iterations, 10))
+        out["point_lookup_ms"] = safe(
+            "point_lookup", lambda: percentiles(run_timed(point_lookup, iterations, 10))
+        )
 
         def filtered_lookup():
             with self.driver.session() as s:
                 list(s.run("MATCH (n:Dev {dev_type: 'ml'}) RETURN n.id LIMIT 50"))
 
-        out["filtered_lookup_ms"] = percentiles(run_timed(filtered_lookup, iterations, 10))
+        out["filtered_lookup_ms"] = safe(
+            "filtered_lookup", lambda: percentiles(run_timed(filtered_lookup, iterations, 10))
+        )
         out["indexed_properties"] = ["Dev.id", "Dev.dev_type"]
 
         def aggregation():
             with self.driver.session() as s:
                 list(s.run("MATCH (n:Dev) RETURN n.dev_type, count(*) ORDER BY n.dev_type"))
 
-        out["aggregation_ms"] = percentiles(run_timed(aggregation, iterations, 10))
+        out["aggregation_ms"] = safe(
+            "aggregation", lambda: percentiles(run_timed(aggregation, iterations, 10))
+        )
 
         write_counter = {"n": 900000000}
 
@@ -183,9 +224,14 @@ class BoltBackend:
 
         mixed = {}
         for conc in (1, 10, 40):
-            runner = MixedWorkloadRunner(read_op, write_op, read_write_ratio=0.9)
-            mixed[f"concurrency_{conc}"] = runner.run(conc, duration_s=4.0)
+            def run_conc(conc=conc):
+                runner = MixedWorkloadRunner(read_op, write_op, read_write_ratio=0.9)
+                return runner.run(conc, duration_s=4.0)
+
+            mixed[f"concurrency_{conc}"] = safe(f"mixed_{conc}", run_conc)
         out["mixed_workload"] = mixed
+        if errors:
+            out["workload_errors"] = errors
         return out
 
     def close(self):

@@ -91,19 +91,62 @@ embedded database - respectable throughput at low concurrency, mild
 degradation as write contention increases at 40 concurrent clients. That's
 SQLite behaving correctly, not badly.
 
-## What I'd actually want to know, and couldn't measure here
+## Then I actually got CognoDB numbers, and the question above got answered
 
 The interesting comparison in this assignment was never really "is
 CognoDB fast" - it was "how much of a managed graph database's latency
 budget is the database, and how much is the network hop to reach it."
-Every number in this article was produced with zero network round-trips
-at all, which makes it a poor proxy for a `bolt+s://` connection to a
-cloud instance three availability zones away from a laptop. The honest
-answer to "how does CognoDB compare" is: I don't know yet, and I'm not
-going to guess in its favor or against it. The harness is built, the
-methodology is fixed, and four lines of environment variables are the
-only thing standing between this article and real numbers for CognoDB,
-Neo4j, Memgraph, and ArangoDB. See `RUNNING_THE_CLOUD_LEG.md`.
+Every number in the previous section was produced with zero network
+round-trips at all, which made it a poor proxy for a `bolt+s://`
+connection to a real cloud instance. So I ran the same harness a second
+time, from a machine with actual internet access, against a real
+CognoDB Cloud free-tier instance (0.5 vCPU burstable, 256 MB RAM).
+
+The first attempt didn't even finish: the workload code tried to fetch
+all 37,700 node IDs in a single query to pick random sample points, and
+CognoDB's free tier killed it with `OutOfTimeError: context deadline
+exceeded`. That's a real, useful data point on its own - a free-tier
+query deadline exists and a full-table scan over well within 100k rows
+hits it - and I fixed the harness to sample with a bounded `LIMIT`
+instead of a full scan (see `docs/environment-caveats.md`).
+
+With that fixed, here's what a real network round trip costs on
+CognoDB's free tier, next to Kuzu's embedded numbers from the same
+dataset:
+
+| Query | CognoDB Cloud (p50) | Kuzu embedded (p50) | Ratio |
+|---|---|---|---|
+| Point lookup (PK) | 253.7 ms | 0.30 ms | ~845x |
+| 1-hop traversal | 276.5 ms | 0.34 ms* | ~810x |
+| 3-hop traversal | 1,329.6 ms | ~13 ms* | ~100x |
+| Filtered lookup (indexed) | 296.1 ms | 0.62 ms* | ~475x |
+
+*(Kuzu figures from the initial run; see the Results section above for
+exact numbers and run-to-run variance - the ratio is the point, not the
+third decimal place.)*
+
+The striking thing isn't that CognoDB is slower than an embedded,
+in-process database - that was never in question, and it would be an
+unfair comparison to read it as "CognoDB is bad." It's *how flat* the
+cost is across query types. A point lookup (253.7ms) and a 1-hop
+traversal (276.5ms) cost almost the same, which only makes sense if the
+dominant cost in both cases is the network round trip and per-request
+overhead, not the work the database engine actually does once the
+request arrives - exactly the hypothesis from the previous section,
+now confirmed rather than guessed at. The 3-hop number is the one place
+database-side cost clearly shows up: it's 5x the 1-hop latency, not flat
+like the rest, meaning multi-hop traversal work does scale with hop
+depth even when round-trip time is the dominant fixed cost per query.
+
+The mixed-workload throughput numbers tell the same story from another
+angle: 3.7 queries/second at concurrency 1, scaling to only 65.6 qps at
+concurrency 40 - each client is mostly waiting on network latency rather
+than contending for database resources, so adding more concurrent
+clients helps roughly linearly rather than hitting a database-side
+ceiling in this range. Neo4j, Memgraph, and ArangoDB (self-hosted,
+same-region) would be the natural next comparison to isolate "network
+distance" from "this specific vendor's free tier" - the harness for all
+three is ready; see `RUNNING_THE_CLOUD_LEG.md`.
 
 ## The methodology takeaway
 

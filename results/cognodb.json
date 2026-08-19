@@ -1,0 +1,67 @@
+{
+  "platform": "CognoDB Cloud (Bolt/Cypher via official neo4j driver)",
+  "load": {
+    "node_count": 37700,
+    "relationship_count": 289003,
+    "node_load_s": 22.1569,
+    "relationship_load_s": 212.2525,
+    "total_wall_clock_s": 234.4094,
+    "nodes_per_second": 160.8,
+    "relationships_per_second": 1232.9,
+    "method": "UNWIND-batched CREATE via driver, batch_size=1000",
+    "note": "load and workloads were run as two separate invocations against the same live free-tier instance (workloads() initially failed on a free-tier query deadline before the harness fix - see docs/environment-caveats.md); load numbers are from the first successful run, workload numbers from the second"
+  },
+  "workloads": {
+    "traversal_1hop_ms": {
+      "p50": 276.47774999968533,
+      "p95": 680.3111000004264
+    },
+    "traversal_2hop_ms": {
+      "p50": 281.5540999999939,
+      "p95": 588.6110799997822
+    },
+    "traversal_3hop_ms": {
+      "p50": 1329.6062999997957,
+      "p95": 6324.78578999985
+    },
+    "point_lookup_ms": {
+      "p50": 253.70334999979605,
+      "p95": 420.0097000004462
+    },
+    "filtered_lookup_ms": {
+      "p50": 296.065450000242,
+      "p95": 425.30538999981195
+    },
+    "indexed_properties": [
+      "Dev.id",
+      "Dev.dev_type"
+    ],
+    "aggregation_ms": {
+      "p50": 344.70550000014555,
+      "p95": 661.0279150000224
+    },
+    "mixed_workload": {
+      "concurrency_1": {
+        "concurrency": 1,
+        "duration_s": 4.02,
+        "total_ops": 15,
+        "throughput_qps": 3.73,
+        "errors": 0
+      },
+      "concurrency_10": {
+        "concurrency": 10,
+        "duration_s": 4.143,
+        "total_ops": 61,
+        "throughput_qps": 14.72,
+        "errors": 0
+      },
+      "concurrency_40": {
+        "concurrency": 40,
+        "duration_s": 4.387,
+        "total_ops": 288,
+        "throughput_qps": 65.64,
+        "errors": 0
+      }
+    }
+  }
+}
