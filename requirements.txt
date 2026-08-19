@@ -1,0 +1,9 @@
+# Executed in this build (no external network required):
+kuzu==0.11.3
+networkx==3.3
+redis==5.0.8
+
+# Ready-to-run but not executed here (see docs/environment-caveats.md) -
+# needed only for scripts/run_bolt_backend.py and scripts/run_arango_backend.py:
+neo4j==5.24.0
+python-arango==8.1.2

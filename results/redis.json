@@ -1,0 +1,71 @@
+{
+  "platform": "Redis (hand-rolled adjacency-list baseline, NOT a graph database)",
+  "wall_clock_total_s": 135.94,
+  "load": {
+    "node_count": 37700,
+    "relationship_count": 289003,
+    "node_load_s": 0.5935,
+    "relationship_load_s": 3.8809,
+    "total_wall_clock_s": 4.4744,
+    "nodes_per_second": 8425.7,
+    "relationships_per_second": 64590.4,
+    "method": "pipelined HSET/SADD in batches of 5000"
+  },
+  "workloads": {
+    "traversal_1hop_ms": {
+      "p50": 0.11659799997687514,
+      "p95": 0.1582546000236107
+    },
+    "traversal_2hop_ms": {
+      "p50": 11.127150000220354,
+      "p95": 38.1417221501124
+    },
+    "traversal_3hop_ms": {
+      "p50": 1245.0825680000435,
+      "p95": 2471.9451187501136
+    },
+    "point_lookup_ms": {
+      "p50": 0.1302449998092925,
+      "p95": 0.1696679000588119
+    },
+    "filtered_lookup_ms": {
+      "p50": 76.75510749982095,
+      "p95": 87.05509920014265
+    },
+    "indexed_properties": [
+      "node:<id> hash key (PK)",
+      "idx:dev_type:<value> secondary set index"
+    ],
+    "aggregation_ms": {
+      "p50": 0.20018449981762387,
+      "p95": 0.25873894996948366
+    },
+    "mixed_workload": {
+      "concurrency_1": {
+        "concurrency": 1,
+        "duration_s": 4.0,
+        "total_ops": 37224,
+        "throughput_qps": 9305.83,
+        "errors": 0
+      },
+      "concurrency_10": {
+        "concurrency": 10,
+        "duration_s": 4.001,
+        "total_ops": 30416,
+        "throughput_qps": 7601.7,
+        "errors": 0
+      },
+      "concurrency_40": {
+        "concurrency": 40,
+        "duration_s": 4.004,
+        "total_ops": 28145,
+        "throughput_qps": 7029.41,
+        "errors": 0
+      }
+    }
+  },
+  "footprint": {
+    "stored_data_size_mb": 18.86,
+    "memory_usage": "18.86 MB (INFO memory used_memory)"
+  }
+}

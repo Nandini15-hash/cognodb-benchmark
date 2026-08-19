@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.env
+venv/
+results/_kuzu_db
+results/_sqlite_db.sqlite3*
+dump.rdb

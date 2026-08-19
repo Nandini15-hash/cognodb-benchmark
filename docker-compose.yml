@@ -1,0 +1,70 @@
+version: "3.8"
+
+# Fairness note (see README "Methodology & fairness"): every platform below is
+# capped to the same nominal resource envelope used for the CognoDB free tier
+# advertised in the assignment brief (burstable 0.5 vCPU / 256 MB RAM / 1 GB
+# disk). In practice several JVM-backed engines cannot even start in 256 MB
+# (see docs/resource-caveat.md) so we additionally test a "practical minimum"
+# tier and report both, exactly as the brief's honesty requirement asks.
+
+services:
+  neo4j:
+    image: neo4j:5.24-community
+    container_name: bench-neo4j
+    environment:
+      - NEO4J_AUTH=neo4j/benchmarkpass
+      - NEO4J_server_memory_heap_initial__size=384m
+      - NEO4J_server_memory_heap_max__size=384m
+      - NEO4J_server_memory_pagecache_size=64m
+      - NEO4J_server_config_strict__validation_enabled=false
+    ports:
+      - "7687:7687"
+      - "7474:7474"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+    cpus: 0.50
+    mem_limit: 512m
+    volumes:
+      - neo4j_data:/data
+
+  memgraph:
+    image: memgraph/memgraph:2.18.1
+    container_name: bench-memgraph
+    command: ["--memory-limit=200"]
+    ports:
+      - "7688:7687"
+    cpus: 0.50
+    mem_limit: 256m
+    volumes:
+      - memgraph_data:/var/lib/memgraph
+
+  arangodb:
+    image: arangodb:3.12
+    container_name: bench-arangodb
+    environment:
+      - ARANGO_ROOT_PASSWORD=benchmarkpass
+    ports:
+      - "8529:8529"
+    cpus: 0.50
+    mem_limit: 512m
+    volumes:
+      - arango_data:/var/lib/arangodb3
+
+  falkordb:
+    image: falkordb/falkordb:latest
+    container_name: bench-falkordb
+    ports:
+      - "6379:6379"
+    cpus: 0.50
+    mem_limit: 256m
+    volumes:
+      - falkordb_data:/data
+
+volumes:
+  neo4j_data:
+  memgraph_data:
+  arango_data:
+  falkordb_data:

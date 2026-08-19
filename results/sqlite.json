@@ -1,0 +1,76 @@
+{
+  "platform": "SQLite (relational baseline, NOT a graph database)",
+  "wall_clock_total_s": 16.22,
+  "load": {
+    "node_count": 37700,
+    "relationship_count": 289003,
+    "physical_rows_stored": 578006,
+    "node_load_s": 0.0526,
+    "relationship_load_s": 0.8732,
+    "index_build_s": 0.5254,
+    "total_wall_clock_s": 1.4512,
+    "nodes_per_second": 25977.7,
+    "relationships_per_second": 199141.1,
+    "method": "executemany() batch insert + post-hoc CREATE INDEX"
+  },
+  "workloads": {
+    "traversal_1hop_ms": {
+      "p50": 0.004618499815478572,
+      "p95": 0.008855150190356651
+    },
+    "traversal_2hop_ms": {
+      "p50": 0.10053450000668818,
+      "p95": 0.6912926997756584
+    },
+    "traversal_3hop_ms": {
+      "p50": 10.040020000133154,
+      "p95": 59.05122449978535
+    },
+    "point_lookup_ms": {
+      "p50": 0.005432500074675772,
+      "p95": 0.008719449897398587
+    },
+    "filtered_lookup_ms": {
+      "p50": 0.019431499822530895,
+      "p95": 0.0361081000392005
+    },
+    "indexed_properties": [
+      "nodes.id (PK)",
+      "nodes.dev_type (btree)",
+      "edges.src",
+      "edges.dst"
+    ],
+    "aggregation_ms": {
+      "p50": 1.8368774999544257,
+      "p95": 1.933366599882902
+    },
+    "mixed_workload": {
+      "concurrency_1": {
+        "concurrency": 1,
+        "duration_s": 4.0,
+        "total_ops": 144913,
+        "throughput_qps": 36226.85,
+        "errors": 0
+      },
+      "concurrency_10": {
+        "concurrency": 10,
+        "duration_s": 4.082,
+        "total_ops": 150858,
+        "throughput_qps": 36958.71,
+        "errors": 0
+      },
+      "concurrency_40": {
+        "concurrency": 40,
+        "duration_s": 4.166,
+        "total_ops": 139593,
+        "throughput_qps": 33504.74,
+        "errors": 0
+      }
+    },
+    "mixed_workload_note": "each client thread uses its own sqlite3 connection (timeout=5s); WAL mode allows concurrent readers but SQLite serializes writers, so 'errors' below reflects genuine SQLITE_BUSY contention, not a harness bug"
+  },
+  "footprint": {
+    "stored_data_size_mb": 31.4,
+    "memory_usage": "not observable"
+  }
+}

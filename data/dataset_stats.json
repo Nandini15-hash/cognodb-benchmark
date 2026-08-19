@@ -1,0 +1,10 @@
+{
+  "source": "MUSAE-GitHub (Rozemberczki et al. 2021)",
+  "license": "GNU GPLv3 (research dataset, freely redistributable)",
+  "node_count": 37700,
+  "relationship_count": 289003,
+  "synthetic_properties": [
+    "dev_type (ml|web) - deterministic hash, benchmark fixture only",
+    "login - synthetic string label 'dev_<id>', benchmark fixture only"
+  ]
+}

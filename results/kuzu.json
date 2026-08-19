@@ -1,0 +1,71 @@
+{
+  "platform": "Kuzu (embedded, self-hosted)",
+  "wall_clock_total_s": 15.78,
+  "load": {
+    "node_count": 37700,
+    "relationship_count": 289003,
+    "node_load_s": 0.1102,
+    "relationship_load_s": 0.1887,
+    "total_wall_clock_s": 0.2989,
+    "nodes_per_second": 126144.3,
+    "relationships_per_second": 967004.6,
+    "method": "native bulk COPY FROM CSV"
+  },
+  "workloads": {
+    "traversal_1hop_ms": {
+      "p50": 0.6943484997918858,
+      "p95": 0.8327195998845127
+    },
+    "traversal_2hop_ms": {
+      "p50": 4.098115999795482,
+      "p95": 10.65099689976705
+    },
+    "traversal_3hop_ms": {
+      "p50": 18.6981360000118,
+      "p95": 31.410889550011234
+    },
+    "point_lookup_ms": {
+      "p50": 0.30419650011026533,
+      "p95": 0.3757058000019242
+    },
+    "filtered_lookup_ms": {
+      "p50": 0.5134924999765644,
+      "p95": 0.6948206001197832
+    },
+    "indexed_properties": [
+      "Dev.id (primary key)"
+    ],
+    "filter_note": "dev_type has no secondary index in Kuzu run (table scan); see caveats",
+    "aggregation_ms": {
+      "p50": 3.0413090000820375,
+      "p95": 3.9603654501888736
+    },
+    "mixed_workload": {
+      "concurrency_1": {
+        "concurrency": 1,
+        "duration_s": 4.003,
+        "total_ops": 10610,
+        "throughput_qps": 2650.26,
+        "errors": 0
+      },
+      "concurrency_10": {
+        "concurrency": 10,
+        "duration_s": 4.004,
+        "total_ops": 11219,
+        "throughput_qps": 2801.84,
+        "errors": 0
+      },
+      "concurrency_40": {
+        "concurrency": 40,
+        "duration_s": 4.015,
+        "total_ops": 9441,
+        "throughput_qps": 2351.16,
+        "errors": 0
+      }
+    }
+  },
+  "footprint": {
+    "stored_data_size_mb": 9.39,
+    "memory_usage": "not observable (embedded in host process; see caveats)"
+  }
+}
