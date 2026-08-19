@@ -281,10 +281,17 @@ paying it over the wider internet on top of a burstable free tier.
 
 ## Reproducing this
 
+Prerequisite: a Redis server must be running locally on the default port
+before `run_benchmark.py` will work (the redis_backend.py comparator
+connects to `127.0.0.1:6379`). Install it via your OS package manager
+(e.g. `apt install redis-server` / `brew install redis`) and start it
+(`redis-server --daemonize yes`, or run it however your platform prefers)
+before the second command below.
+
 ```bash
 pip install -r requirements.txt
 python3 data/prepare_dataset.py     # only needed once
-python3 run_benchmark.py            # runs kuzu, sqlite, redis, networkx
+python3 run_benchmark.py            # runs kuzu, sqlite, redis, networkx - needs redis-server running (see above)
 python3 generate_readme.py          # regenerates this README from results/
 ```
 
