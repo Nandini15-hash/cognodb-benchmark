@@ -116,14 +116,16 @@ dataset:
 
 | Query | CognoDB Cloud (p50) | Kuzu embedded (p50) | Ratio |
 |---|---|---|---|
-| Point lookup (PK) | 253.7 ms | 0.30 ms | ~845x |
-| 1-hop traversal | 276.5 ms | 0.34 ms* | ~810x |
-| 3-hop traversal | 1,329.6 ms | ~13 ms* | ~100x |
-| Filtered lookup (indexed) | 296.1 ms | 0.62 ms* | ~475x |
+| Point lookup (PK) | 253.7 ms | 0.30 ms | ~835x |
+| 1-hop traversal | 276.5 ms | 0.69 ms | ~400x |
+| 3-hop traversal | 1,329.6 ms | 18.70 ms | ~71x |
+| Filtered lookup (indexed) | 296.1 ms | 0.51 ms | ~575x |
 
-*(Kuzu figures from the initial run; see the Results section above for
-exact numbers and run-to-run variance - the ratio is the point, not the
-third decimal place.)*
+(Both columns are exact p50 values from `results/cognodb.json` and
+`results/kuzu.json` as committed in this repo. Re-running either suite
+will shift these by normal timing variance - regenerate with
+`python3 generate_readme.py` after any re-run rather than trusting a
+stale table.)
 
 The striking thing isn't that CognoDB is slower than an embedded,
 in-process database - that was never in question, and it would be an
