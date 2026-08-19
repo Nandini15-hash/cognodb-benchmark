@@ -74,8 +74,18 @@ class BoltBackend:
 
         with self.driver.session() as s:
             s.run("MATCH (n) DETACH DELETE n")
-            s.run("CREATE INDEX dev_id IF NOT EXISTS FOR (n:Dev) ON (n.id)")
-            s.run("CREATE INDEX dev_type IF NOT EXISTS FOR (n:Dev) ON (n.dev_type)")
+            # Index DDL syntax differs across Bolt/Cypher engines: Neo4j
+            # 5.x and CognoDB (also Neo4j-protocol-compatible) accept the
+            # "IF NOT EXISTS FOR (n:Label) ON (n.prop)" form; Memgraph uses
+            # the older "CREATE INDEX ON :Label(prop)" form and rejects the
+            # former with a parse error. Try the modern form first, fall
+            # back to Memgraph's form rather than hand-picking syntax per
+            # platform at the call site.
+            for label, prop in (("Dev", "id"), ("Dev", "dev_type")):
+                try:
+                    s.run(f"CREATE INDEX {label.lower()}_{prop} IF NOT EXISTS FOR (n:{label}) ON (n.{prop})")
+                except Exception:
+                    s.run(f"CREATE INDEX ON :{label}({prop})")
 
         t0 = time.perf_counter()
         n_nodes = 0
@@ -199,7 +209,16 @@ class BoltBackend:
 
         def aggregation():
             with self.driver.session() as s:
-                list(s.run("MATCH (n:Dev) RETURN n.dev_type, count(*) ORDER BY n.dev_type"))
+                # Explicit aliases rather than "ORDER BY n.dev_type" -
+                # Memgraph's Cypher implementation scopes variables after
+                # aggregation more strictly than Neo4j/CognoDB and treats
+                # the bare "n" as unbound at that point (ClientError:
+                # "Unbound variable: n."). Aliasing works identically on
+                # all three engines and is more portable Cypher besides.
+                list(s.run(
+                    "MATCH (n:Dev) RETURN n.dev_type AS dev_type, count(*) AS c "
+                    "ORDER BY dev_type"
+                ))
 
         out["aggregation_ms"] = safe(
             "aggregation", lambda: percentiles(run_timed(aggregation, iterations, 10))

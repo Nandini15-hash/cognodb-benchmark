@@ -1,0 +1,66 @@
+{
+  "platform": "Neo4j (self-hosted) (Bolt/Cypher via official neo4j driver)",
+  "load": {
+    "node_count": 37700,
+    "relationship_count": 289003,
+    "node_load_s": 18.372,
+    "relationship_load_s": 49.406,
+    "total_wall_clock_s": 67.778,
+    "nodes_per_second": 556.2,
+    "relationships_per_second": 4264.0,
+    "method": "UNWIND-batched CREATE via driver, batch_size=1000"
+  },
+  "workloads": {
+    "traversal_1hop_ms": {
+      "p50": 4.908499999999094,
+      "p95": 79.53659500007575
+    },
+    "traversal_2hop_ms": {
+      "p50": 8.250999999972919,
+      "p95": 95.39993000003051
+    },
+    "traversal_3hop_ms": {
+      "p50": 222.7962499999876,
+      "p95": 1021.6341349999765
+    },
+    "point_lookup_ms": {
+      "p50": 3.8769000000229425,
+      "p95": 58.12168499994637
+    },
+    "filtered_lookup_ms": {
+      "p50": 6.300249999981133,
+      "p95": 79.03122000008693
+    },
+    "indexed_properties": [
+      "Dev.id",
+      "Dev.dev_type"
+    ],
+    "aggregation_ms": {
+      "p50": 20.68170000001146,
+      "p95": 105.15923999998336
+    },
+    "mixed_workload": {
+      "concurrency_1": {
+        "concurrency": 1,
+        "duration_s": 4.002,
+        "total_ops": 283,
+        "throughput_qps": 70.72,
+        "errors": 0
+      },
+      "concurrency_10": {
+        "concurrency": 10,
+        "duration_s": 4.177,
+        "total_ops": 391,
+        "throughput_qps": 93.6,
+        "errors": 0
+      },
+      "concurrency_40": {
+        "concurrency": 40,
+        "duration_s": 4.208,
+        "total_ops": 449,
+        "throughput_qps": 106.7,
+        "errors": 0
+      }
+    }
+  }
+}

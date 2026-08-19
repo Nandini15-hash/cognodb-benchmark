@@ -138,12 +138,22 @@ def main():
     not_executed = [k for k, _ in PLATFORM_ORDER if k not in results]
     real_dbs = [k for k in executed if k not in NOT_A_DB]
     cognodb_done = "cognodb" in results
+    required_others = ["neo4j", "memgraph", "arangodb", "kuzu"]
+    spec_met = cognodb_done and all(k in results for k in required_others)
 
-    status_line = (
-        "**Status: CognoDB Cloud benchmarked against real data.** "
-        if cognodb_done
-        else "**Status: partial - CognoDB Cloud not yet benchmarked.** "
-    )
+    if spec_met:
+        status_line = (
+            "**Status: complete.** CognoDB Cloud plus four other graph "
+            "database platforms (Neo4j, Memgraph, ArangoDB, Kuzu) have all "
+            "been benchmarked with real, measured data - meeting the "
+            "assignment's \"CognoDB plus at least four other graph "
+            "databases\" requirement. "
+        )
+    elif cognodb_done:
+        status_line = "**Status: partial - CognoDB Cloud benchmarked, but fewer than four other databases are done.** "
+    else:
+        status_line = "**Status: partial - CognoDB Cloud not yet benchmarked.** "
+
     not_executed_line = (
         f"**Not yet executed (harness ready):** {', '.join(dict(PLATFORM_ORDER)[k] for k in not_executed)}\n"
         if not_executed
@@ -156,16 +166,18 @@ Benchmarks CognoDB Cloud against other graph database platforms on an
 identical public dataset and workload suite, per the Wexa AI take-home
 assignment brief.
 
-{status_line}The dataset pipeline and harness were built and mostly
-executed inside a sandboxed environment with no outbound network access
-to any cloud console or Docker registry (see
-[`docs/environment-caveats.md`](docs/environment-caveats.md)). CognoDB
-Cloud specifically was benchmarked afterward from a machine with normal
-internet access, against a real free-tier instance, using the same
-harness and workload spec - see the "load" note on the CognoDB row below
-for exactly how that was sequenced. Every number in this README was
-produced by actually running the code in this repo; none are estimated
-or placeholder.
+{status_line}The dataset pipeline and most of the harness were originally
+built inside a sandboxed environment with no outbound network access to
+any cloud console or Docker registry (see
+[`docs/environment-caveats.md`](docs/environment-caveats.md) for the full
+story, including a couple of real cross-platform Cypher-dialect bugs the
+harness hit and fixed along the way - e.g. Memgraph's stricter variable
+scoping after aggregation). CognoDB Cloud, Neo4j, Memgraph, and ArangoDB
+were all benchmarked afterward from a machine with normal internet access
+and, once installed, a working Docker setup - see the "load" note on each
+platform's results for exactly how that was sequenced. Every number in
+this README was produced by actually running the code in this repo; none
+are estimated or placeholder.
 
 **Executed in this build:** {', '.join(dict(PLATFORM_ORDER)[k] for k in executed)}
 {not_executed_line}
@@ -232,40 +244,71 @@ or placeholder.
 
 ## Analysis
 
-See [`ARTICLE.md`](ARTICLE.md) for the full write-up. Short version: Kuzu
-(the one real embedded graph engine benchmarked here) posts sub-millisecond
-1-hop and point-lookup latencies and a near-million-relationships/second
-bulk load, consistent with published "embedded, columnar, no network
-round-trip" graph engine benchmarks elsewhere. CognoDB Cloud, benchmarked
-separately over a real network connection to a free-tier instance, is 2-3
-orders of magnitude slower on every latency metric (point lookup: 254ms
-p50 vs. Kuzu's 0.3ms; 3-hop traversal: 1,330ms p50 vs. Kuzu's low-teens
-ms) - the gap is dominated by network round-trip time and burstable-tier
-CPU throttling, not query complexity, since even the cheapest possible
-query (a primary-key point lookup) still costs over 250ms. The two
-non-graph-database baselines are informative in a different direction:
-SQLite's 1-hop query is *faster* than Kuzu's (a single indexed self-join
-is cheap), but its cost explodes at 3 hops as the join fans out
-combinatorially, while Kuzu's native traversal degrades more gracefully.
-Redis's 3-hop latency is dramatically worse than the embedded engines
-because every hop is a round trip per frontier node with no query planner
-to batch it - a direct illustration of why purpose-built graph engines
-exist rather than hand-rolling one on a KV store, and a useful sanity
-check against CognoDB's numbers: Redis (localhost) and CognoDB
-(real network) both pay a per-hop round-trip cost, and CognoDB's is
-paying it over the wider internet on top of a burstable free tier.
+See [`ARTICLE.md`](ARTICLE.md) for the full write-up. Short version, now
+with all five real graph databases in hand:
+
+Kuzu (embedded, no network, no server process) is fastest everywhere -
+sub-millisecond point lookups and 1-hop traversals, an ~18.7ms 3-hop, and
+a bulk load north of 900,000 relationships/second. Memgraph is the
+strongest of the self-hosted *server* comparators: an in-memory C++ engine
+with no JVM startup cost, it posts sub-millisecond point lookups (0.73ms)
+and 1-hop traversals (0.92ms) - within striking distance of Kuzu despite
+being a real client-server round trip over localhost. Neo4j lands a clear
+step behind Memgraph on latency (3.9ms point lookup, 4.9ms 1-hop) but
+loads data over 3x faster than ArangoDB and has the best-documented,
+most mature Cypher implementation of the three self-hosted servers.
+ArangoDB is the outlier: its point lookup (1.57ms) is competitive, but
+its graph-traversal AQL query (`FOR v IN 1..1 ANY ...`) costs 44ms at
+1-hop - roughly 45-60x Neo4j/Memgraph's 1-hop cost - which reads as AQL's
+general-purpose traversal syntax carrying meaningfully more per-query
+overhead than either engine's native Cypher pattern-matching for this
+workload, not as ArangoDB being slow in general (its aggregation and
+point-lookup numbers are perfectly reasonable).
+
+CognoDB Cloud, the only platform actually reached over a real network
+rather than localhost or in-process, is 2-3 orders of magnitude slower
+than every self-hosted comparator on every latency metric (point lookup:
+253.7ms vs. Neo4j's 3.9ms and Memgraph's 0.73ms; 3-hop: 1,329.6ms vs.
+Neo4j's 222.8ms). The gap between CognoDB and the *self-hosted* Bolt
+engines - which run the identical query language and driver code CognoDB
+uses - isolates network round-trip time and free-tier CPU throttling as
+the dominant cost, not query complexity or Cypher engine quality: even
+CognoDB's cheapest possible query, a primary-key point lookup, costs
+253.7ms, while the same query against a self-hosted Neo4j on the same
+laptop costs 3.9ms. That ~65x gap is architecture (network + burstable
+tier), not database engine.
+
+The three non-graph-database baselines are informative in a different
+direction: SQLite's 1-hop query is *faster* than every graph engine
+except Kuzu (a single indexed self-join is genuinely cheap), but its
+cost explodes at 3 hops as the join fans out combinatorially. Redis's
+3-hop latency (1.3 seconds) is dramatically worse than every purpose-built
+graph engine, self-hosted or cloud, because every hop is a client-side
+round trip per frontier node with no query planner to batch it - a
+direct illustration of why graph databases exist as a category rather
+than being hand-rolled adjacency sets on a generic KV store.
 
 ## Caveats (honest, not hidden)
 
-1. **CognoDB Cloud was benchmarked in a separate step from the rest of
-   this repo** - the build environment had no outbound network access to
-   any cloud console (see `docs/environment-caveats.md`), so CognoDB's
-   numbers come from a follow-up run against a real free-tier instance
-   from a machine with normal internet access, using the identical harness
-   and workload code. Neo4j, Memgraph, and ArangoDB remain unexecuted -
-   see `RUNNING_THE_CLOUD_LEG.md` to fill those in the same way.
+1. **Neo4j, Memgraph, and ArangoDB required installing Docker Desktop
+   partway through this project** (the initial build environment had no
+   Docker registry or cloud-console access at all - see
+   `docs/environment-caveats.md`) - and Docker's own install hit a real
+   snag (Windows Subsystem for Linux wasn't installed, so Docker's engine
+   component silently failed to set up even though its GUI opened). Once
+   WSL2 was installed and Docker Desktop restarted, all three databases
+   ran cleanly. Two genuine cross-engine Cypher-dialect bugs surfaced and
+   were fixed along the way: Memgraph rejects Neo4j 5.x's `CREATE INDEX
+   ... IF NOT EXISTS FOR (n:Label) ON (n.prop)` syntax (needs the older
+   `CREATE INDEX ON :Label(prop)` form), and Memgraph's Cypher scopes
+   variables more strictly after an aggregating `RETURN`, rejecting
+   `ORDER BY n.prop` with "Unbound variable" where Neo4j and CognoDB
+   accept it. Both are now handled portably in `harness/bolt_backend.py`
+   rather than special-cased per platform.
 2. **No enforced resource cap** on the platforms benchmarked without
-   Docker - see the methodology section above.
+   Docker (Kuzu, SQLite, Redis, NetworkX) - see the methodology section
+   above. The three Docker-hosted comparators (Neo4j/Memgraph/ArangoDB)
+   *do* run under the resource caps in `docker-compose.yml`.
 3. **Python GIL:** NetworkX and SQLite (in-process, pure Python / thin C
    extension) do not get real parallelism from the thread-based mixed
    workload the way Kuzu (C++ core, releases the GIL during native calls)

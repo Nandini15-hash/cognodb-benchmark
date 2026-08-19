@@ -1,0 +1,66 @@
+{
+  "platform": "ArangoDB (self-hosted, AQL via python-arango)",
+  "load": {
+    "node_count": 37700,
+    "relationship_count": 289003,
+    "node_load_s": 2.5063,
+    "relationship_load_s": 22.2777,
+    "total_wall_clock_s": 24.784,
+    "nodes_per_second": 1521.1,
+    "relationships_per_second": 11660.9,
+    "method": "insert_many() batches of 1000"
+  },
+  "workloads": {
+    "traversal_1hop_ms": {
+      "p50": 44.04940000017632,
+      "p95": 48.14319499969315
+    },
+    "traversal_2hop_ms": {
+      "p50": 47.07339999981741,
+      "p95": 55.51896000024498
+    },
+    "traversal_3hop_ms": {
+      "p50": 241.83770000013283,
+      "p95": 1522.8944650000813
+    },
+    "point_lookup_ms": {
+      "p50": 1.5651500000330998,
+      "p95": 1.966289999904802
+    },
+    "filtered_lookup_ms": {
+      "p50": 44.04165000028115,
+      "p95": 48.23252999999568
+    },
+    "indexed_properties": [
+      "devs._key (PK)",
+      "devs.dev_type (persistent index)"
+    ],
+    "aggregation_ms": {
+      "p50": 58.094149999988076,
+      "p95": 66.3447349997341
+    },
+    "mixed_workload": {
+      "concurrency_1": {
+        "concurrency": 1,
+        "duration_s": 4.01,
+        "total_ops": 631,
+        "throughput_qps": 157.34,
+        "errors": 0
+      },
+      "concurrency_10": {
+        "concurrency": 10,
+        "duration_s": 4.016,
+        "total_ops": 2565,
+        "throughput_qps": 638.7,
+        "errors": 0
+      },
+      "concurrency_40": {
+        "concurrency": 40,
+        "duration_s": 4.072,
+        "total_ops": 2565,
+        "throughput_qps": 629.96,
+        "errors": 0
+      }
+    }
+  }
+}

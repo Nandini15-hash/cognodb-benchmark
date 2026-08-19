@@ -1,8 +1,13 @@
 # Filling in CognoDB / Neo4j / Memgraph / ArangoDB
 
-Everything below assumes you're running from a machine with normal internet
-access (this repo's own results matrix could not run these legs from its
-build sandbox - see `docs/environment-caveats.md`).
+**Status: done.** All four legs below have now been run for real and their
+results are committed in `results/`. This doc is kept as-is (rather than
+rewritten in the past tense) so it still works as a step-by-step guide if
+you want to reproduce or re-run any of these legs yourself - see
+`docs/environment-caveats.md` for why they couldn't run from this repo's
+original build sandbox, and the README's Caveats section for the two real
+bugs (Memgraph index syntax, Memgraph aggregation variable scoping) that
+came up while running them.
 
 ## 1. CognoDB Cloud
 

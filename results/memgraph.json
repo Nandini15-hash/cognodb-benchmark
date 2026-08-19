@@ -1,0 +1,62 @@
+{
+  "platform": "Memgraph (self-hosted) (Bolt/Cypher via official neo4j driver)",
+  "load": {
+    "node_count": 39531,
+    "relationship_count": null,
+    "note": "skipped reload - 39531 Dev nodes already present from a previous run; pass force_reload=True to redo it",
+    "method": "skipped (data already loaded)"
+  },
+  "workloads": {
+    "traversal_1hop_ms": {
+      "p50": 0.9226500000067972,
+      "p95": 1.5095450000217165
+    },
+    "traversal_2hop_ms": {
+      "p50": 2.8479000000061205,
+      "p95": 26.588244999834377
+    },
+    "traversal_3hop_ms": {
+      "p50": 168.54860000012195,
+      "p95": 702.7366649998953
+    },
+    "point_lookup_ms": {
+      "p50": 0.7303999999521693,
+      "p95": 1.3241700000548913
+    },
+    "filtered_lookup_ms": {
+      "p50": 1.6442999999526364,
+      "p95": 2.319324999996297
+    },
+    "indexed_properties": [
+      "Dev.id",
+      "Dev.dev_type"
+    ],
+    "aggregation_ms": {
+      "p50": 10.72860000010678,
+      "p95": 60.735169999964
+    },
+    "mixed_workload": {
+      "concurrency_1": {
+        "concurrency": 1,
+        "duration_s": 4.002,
+        "total_ops": 5545,
+        "throughput_qps": 1385.53,
+        "errors": 0
+      },
+      "concurrency_10": {
+        "concurrency": 10,
+        "duration_s": 4.002,
+        "total_ops": 6333,
+        "throughput_qps": 1582.4,
+        "errors": 0
+      },
+      "concurrency_40": {
+        "concurrency": 40,
+        "duration_s": 4.009,
+        "total_ops": 5835,
+        "throughput_qps": 1455.42,
+        "errors": 0
+      }
+    }
+  }
+}

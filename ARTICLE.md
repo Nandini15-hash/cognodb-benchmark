@@ -145,10 +145,75 @@ angle: 3.7 queries/second at concurrency 1, scaling to only 65.6 qps at
 concurrency 40 - each client is mostly waiting on network latency rather
 than contending for database resources, so adding more concurrent
 clients helps roughly linearly rather than hitting a database-side
-ceiling in this range. Neo4j, Memgraph, and ArangoDB (self-hosted,
-same-region) would be the natural next comparison to isolate "network
-distance" from "this specific vendor's free tier" - the harness for all
-three is ready; see `RUNNING_THE_CLOUD_LEG.md`.
+ceiling in this range.
+
+## Isolating "network distance" from "this vendor's free tier": Neo4j, Memgraph, ArangoDB
+
+The natural next question is whether CognoDB's ~65x-800x latency
+multiplier is specific to CognoDB, or just what any managed graph
+database costs once you leave localhost. The way to isolate that is to
+run the *same* engines self-hosted, on the same machine, with no network
+hop at all - if the self-hosted numbers look like Kuzu's (sub-millisecond)
+rather than CognoDB's (hundreds of milliseconds), the gap is architecture
+(network + free-tier throttling), not "CognoDB the product."
+
+Getting there required a small side quest. The machine running this
+benchmark didn't have Docker installed, and installing it wasn't a clean
+one-step process: Docker Desktop's installer completed and its GUI
+opened, but the actual engine and CLI silently failed to set up, because
+Docker Desktop's Linux engine depends on WSL2 (Windows Subsystem for
+Linux), which wasn't installed. `docker --version` returned "not
+recognized" even after reopening the terminal - the binary genuinely
+didn't exist yet, not just a stale PATH. Running `wsl --install`,
+restarting, and reopening Docker Desktop resolved it cleanly - worth
+recording as its own small data point about how much invisible
+infrastructure sits underneath "just run Docker."
+
+Two real cross-engine bugs surfaced once all three were up. Memgraph
+rejects Neo4j 5.x's modern index syntax (`CREATE INDEX ... IF NOT EXISTS
+FOR (n:Label) ON (n.prop)`) with a parse error - it wants the older
+`CREATE INDEX ON :Label(prop)` form instead, so the loader now tries the
+modern form and falls back rather than special-casing per platform.
+Separately, Memgraph's Cypher implementation scopes variables more
+strictly after an aggregating `RETURN`: `MATCH (n:Dev) RETURN n.dev_type,
+count(*) ORDER BY n.dev_type` - which Neo4j and CognoDB both accept
+without complaint - fails on Memgraph with `Unbound variable: n.`, because
+by the time `ORDER BY` runs, `n` is no longer in scope for Memgraph the
+way it still is for Neo4j. The fix was to alias explicitly
+(`RETURN n.dev_type AS dev_type ... ORDER BY dev_type`), which is more
+portable Cypher regardless and now works identically across all three.
+Both bugs were caught cleanly by the per-workload error handling added
+after the CognoDB free-tier timeout earlier in this project - one query
+category failing didn't take down the whole run, which is exactly the
+resilience that error handling was built for.
+
+With all three running under the resource caps in `docker-compose.yml`,
+here's where they land next to Kuzu and CognoDB on the two cheapest
+queries:
+
+| Platform | Point lookup p50 | 1-hop p50 | How it's reached |
+|---|---|---|---|
+| Kuzu | 0.30 ms | 0.69 ms | embedded, in-process |
+| Memgraph (self-hosted) | 0.73 ms | 0.92 ms | localhost, Bolt/Cypher |
+| ArangoDB (self-hosted) | 1.57 ms | 44.05 ms | localhost, AQL |
+| Neo4j (self-hosted) | 3.88 ms | 4.91 ms | localhost, Bolt/Cypher |
+| CognoDB Cloud | 253.70 ms | 276.48 ms | real network, free tier |
+
+That confirms the hypothesis: every self-hosted engine, regardless of
+which one, is 50-800x faster than CognoDB on the cheapest possible query,
+and all of them are within a couple of milliseconds of each other except
+ArangoDB's 1-hop. ArangoDB's outlier 44ms 1-hop isn't a red flag on
+ArangoDB generally - its point lookup and aggregation numbers are
+perfectly ordinary - it's specific to the AQL graph-traversal syntax
+(`FOR v IN 1..1 ANY 'devs/x' follows ...`) carrying more built-in
+overhead than Neo4j/Memgraph's native Cypher pattern matching for this
+particular query shape. The takeaway isn't "CognoDB is bad" or even
+"managed cloud databases are bad" - it's that the dominant cost in this
+entire benchmark, once you control for engine, is almost entirely
+"am I on the same machine or not," and CognoDB's free tier adds a second
+cost on top of that (burstable CPU throttling) that a same-region paid
+tier likely wouldn't show to the same degree. That's a testable follow-up
+this repo doesn't answer, and I'd rather say so than imply it does.
 
 ## The methodology takeaway
 
